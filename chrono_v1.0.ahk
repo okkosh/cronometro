@@ -1,3 +1,5 @@
+;@Ahk2Exe-SetMainIcon icon.ico
+;@Ahk2Exe-ExeName chronometro
 ; Script Name - Cron�metro - Working hours counter
 /**
 This script provides a personalised and privacy focused way to pitch in
