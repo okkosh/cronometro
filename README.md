@@ -31,7 +31,7 @@ Cronómetro - Simple, Lightweight &amp; Privacy focused time tracking app for fr
 ## Building
 - Clone the Repo
 - Download Autohotkey (AHK) from https://www.autohotkey.com
-- Use `ahk2exe` tool and add `fn-lock` script into it
+- Use `ahk2exe` tool and add script into it
 - Compile
 
 ## Disclamer
