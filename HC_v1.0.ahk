@@ -1,85 +1,153 @@
-; Script Name - Hourly Counter - Working hours counter
+;@Ahk2Exe-SetMainIcon icon.ico
+;@Ahk2Exe-ExeName chronometro
+; Script Name - Cron�metro - Working hours counter
 /**
-This script provides a personalised and privacy focused way to pitch in 
-your working hours by creating a small widget to appear on your screen
-with simple three button interface.
+This script provides a personalised and privacy focused way to pitch in
+your working hours by creating a small widget on your screen's top left
+corner with simple three button interface.
 
-
+TODO: Configurable widget location
 */
-global csv_file := "Working_Hours_" . A_MMM . "_" . A_Year . " .csv"
-global timestamp =
-global is_running := false ; Checks the current state
+
+IniRead , csv_file, config.ini, file, location
+
+; Use a default csv_file in case of non-existent location
+if not csv_file {
+	csv_file := A_ScriptDir . "\" . get_filename()
+} else {
+	csv_file := csv_file . "\" . get_filename()
+}
+
+; Checks for the autostart
+if FileExist(A_Startup . "\oc.lnk")
+	is_auto_start:= "checked"
+
+
+global timestamp ; Timestamp to compare the time with
+ ; Checks the current state running/paused
+global is_running := false
+global is_paused := false
+; Time difference/delta to keep track of between each pause/start
+global time_delta := 0
 
 ; Set gui positioning to bottom right corner
 x_gui:= A_ScreenWidth - 350
 y_gui := A_ScreenHeight - 150
+global gui_name := "Cron�metro"
 
+; Main Gui
 Gui, Color, White, Black
 Gui, Font, s15, Arial
-Gui, Add, Button, vstart gstart x10 y10 w30 h30 , % Chr(127939)
-Gui, Add, Button, vstop gstop xp+35 yp w30 h30 , % Chr(129486)
+Gui, Add, Button, vstart gstart x10 y10 w30 h30 , % Chr(9201)
+Gui, Add, Button, vstop gpause xp+35 yp w30 h30 , % Chr(9208)
 Gui, Add, Button, vdesc gdesc xp+35 yp w30 h30 , % Chr(128172)
 Gui, Add, Button, vfinish gfinish xp+35 yp w30 h30 ,  % Chr(127937)
 Gui, Add, Text, vtimer xp+35 yp w90 h30 +Center, 00:00:00
 Gui, Add, Button, xp+100 yp gopen w30 h30 , % chr(128194)
-Gui, Add, Button, xp+35 yp gclose w30 h30 , % chr(128683)
-
-Gui, Show, w330 h50 x%x_gui% y%y_gui%, Hourly Counter
+Gui, Add, Button, xp+35 yp gconfigure w30 h30 , % chr(128736)
+; Show the main gui
+Gui, Show, w330 h50 x%x_gui% y%y_gui%, % gui_name
 Gui, +LastFound +AlwaysOnTop +ToolWindow
-
+; Disable irrelevant controls (Since this is our first run)
 GuiControl , Disable, stop
 GuiControl , Disable, desc
 GuiControl , Disable, finish
 
-Gui, task: Add, Text, x12 y10 w110 h20 , Add Task Description (What you are working on)
+; Task window to add task descriptions
+Gui, task: Add, Text, x12 y10 w210 , Add Task Description`r`n(Describe complete details of your Task)
 Gui, task: Font, s15, Arial
 Gui, task: Add, Button, Disabled x262 y9 w60 h30,% chr(128247)
-Gui, task: Font, , 
+Gui, task: Font, ,
 Gui, task: Add, Edit, x12 y49 w310 h120 vdescription,
 Gui, task: Add, Button, x122 y179 w100 h30 , Done
 
-; Insert app entry on start
+; Retrieve folder from csv_file to show inside the configuration window
+SplitPath , csv_file, , csv_folder
+split_checked := get_filename(true)
+; labels are based according to the config
+; Do not mess this up unless you are absolutely sure about what you are doing
+radio_labels := ["Current Day", "Current Month", "App run", "Current Year"]
+
+; Create a configuration window
+Gui, config: Add, CheckBox, von_start gautoStart  %is_auto_start% x32 y9 w210 h20 , Start with windows
+Gui, config: Add, Text, x32 y39 w210 h20 , Name/Split worksheets files based on
+Gui, config: Add, Radio, vworsheets_split xp yp w0 h0, ; Fake label to store radio info
+; This will make sure that your last configuration will be selected on the radio control
+for key, label in radio_labels {
+	if (key = split_checked)
+		checked := "checked"
+	Gui, config: Add, Radio, %checked% xp yp+20 h20 , % label
+}
+Gui, config: Add, Edit, vcsv_folder_browser ReadOnly x22 y169 w200 h20 , %csv_folder%
+Gui, config: Add, Button, x122 y199 w100 h20 , Browse
+Gui, config: Add, Button, x62 y239 w100 h30 , Save
+Gui, config: Add, Text, x22 y149 w200 h20 , Custom Folder to Save worksheets
+
+; Make sure to log the App run
 FileAppend , % "`r`nInitiated, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App Started " . A_DD . "/" . A_MMM . "/" . A_YYYY . ",`r`n", % csv_file
 
+; Customise the tray menu
 Menu, Tray, NoStandard
 Menu, Tray, Icon, Shell32.dll, 24
 Menu, Tray, Add, Show, show
+Menu, Tray, Add, Configure, configure
+Menu, Tray, Add, Open Worksheet Folder, open
 Menu, Tray, Add, Exit, exit
 
 return
 
+; Show the main gui
 show:
-	WinShow , Hourly Counter
-	return
-	
-close:
-GuiClose:
-	WinHide , Hourly Counter
+	WinShow , % gui_name
 	return
 
+; Pressing cross button won't let you exit the app
+; TODO: Make it configurable
+GuiClose:
+	WinHide , % gui_name
+	return
+
+; Actual app exit
+; TODO : Prevent shutdown action to destroy app data
+; while the app is tracking time in the background
 exit:
 	ex_action("exit")
 ExitApp
 
+; Start the time tracking
 start:
+	; Enable and disable controls according to this action
+	; TODO: optimise disabling by removing redundant code
 	GuiControl , Disable, start
 	GuiControl , Enable, stop
 	GuiControl , Enable, desc
 	GuiControl , Enable, finish
-	ex_action("start")
+
+	if is_paused{
+		ex_action("resume")
+	} else {
+		ex_action("start")
+	}
+	; start a timer watch
+	; for aesthetics purpose only
 	SetTimer , stopwatch, 1
 return
 
-stop:
+; Pauses the time tracking
+pause:
 	GuiControl , Enable, start
 	GuiControl , Disable, stop
 	GuiControl , Disable, desc
-	ex_action("stop")
+	ex_action("pause")
 	SetTimer , stopwatch, Off
 	return
+
+; Add task desctiption (Will only work when you are running a task)
 desc:
 	Gui, task: Show, w336 h219, Add Task Description
 	return
+
+; finish a task
 finish:
 	GuiControl, Enable, start
 	GuiControl, Disable, stop
@@ -88,60 +156,165 @@ finish:
 	SetTimer , stopwatch, Off
 return
 
+; Description of a task is updated.
 taskButtonDone:
 	Gui, task: submit, Nohide
 	ex_action("update", description)
 	WinHide , Add Task Description
 return
 
+; Configure Chronometro
+configure:
+	Gui, config: Show, w240 h281 , Configure
+return
+
+; Open the folder containing worksheets
 open:
-	Run, % A_ScriptDir
+	Run, % csv_folder
 return
 
+; A time controlled subroutine to show timer on gui
 stopwatch:
-	GuiControl , , timer, % FormatTimeStamp(A_TickCount - timestamp)
+	GuiControl , , timer, % FormatTimeStamp(A_TickCount - timestamp + time_delta)
 return
 
+; A g-label to make sure that this script link
+; will be added into the startup folder
+autoStart:
+	Gui, config:submit, nohide
+	if on_start
+		FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\oc.lnk, %A_ScriptDir%
+	else
+		FileDelete, %A_Startup%\oc.lnk
+	return
 
+; Save configurations and make them effective
+configButtonSave:
+	Gui, config:submit, nohide
+	; worksheets_split -1 because, we are using a fake radio button
+	; to store our variable
+	set_filename(worsheets_split-1)
+	; Make sure that we are using the same file based on
+	; worksheet settings
+	IniWrite , %csv_folder% , config.ini, file, location
+	csv_file := csv_folder . "/" . get_filename()
+	; Hide the main configuration window
+	WinHide , Configure
+	return
+
+; Browse Button for selecting the worksheet folder
+configButtonBrowse:
+	Gui, config:submit, nohide
+	FileSelectFolder , csv_folder, csv_folder, , Select a folder to save your worksheets
+	if csv_folder {
+		GuiControl , config: , csv_folder_browser, %csv_folder%
+	}
+	return
+
+/**
+Method name - ex_action - execute action
+params:-
+	command - action name based on button pressed. start, stop/pause, resume, finish, update, exit
+	desc - Task description (optional)
+returns :-
+	null
+*/
 ex_action(command:="start", desc := ""){
-	global timestamp
-	global is_running
-	
+	; Use the golbal namespace variables
+	global timestamp, is_running, csv_file, is_paused
+
+	; There are two main parts of a particular action
+	; 1. Appending the CSV file based on the action selected
+	; 2. Updating the is_running/is_paused status
+
 	switch (command){
 		case "start":
 			timestamp := A_TickCount
 			FileAppend , % "Started, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session started, `r`n", % csv_file
-			WinSetTitle, Hourly Counter | Running...
+			WinSetTitle, % gui_name . "| Running..."
 			is_running := true
 		return
 		case "stop":
-			FileAppend,  % "Stopped|Paused, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session stopped/paused, " . FormatTimeStamp(A_TickCount - timestamp ) . " `r`n", % csv_file
-			WinSetTitle, Hourly Counter | Stopped/Paused
+		case "pause":
+			FileAppend,  % "Stopped|Paused, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session stopped/paused, `r`n", % csv_file
+			WinSetTitle, % gui_name . "| Paused"
 			is_running := false
+			is_paused := true
+			time_delta := time_delta + A_TickCount - timestamp
 		return
-		case "resume": ; Not currently in use
+		case "resume":
 			timestamp := A_TickCount
-			FileAppend , % "Resumed, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session Resumed, `r`n", % csv_file
-			WinSetTitle, Hourly Counter | Running (Resumed)...
+			FileAppend , % "Resumed, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session resumed, `r`n", % csv_file
+			WinSetTitle, % gui_name . "| Running (Resumed)..."
+			is_paused := false
 			is_running := true
 		return
 		case "finish":
-			FileAppend , % "Finished, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session Finished, " . (is_running ? FormatTimeStamp(A_TickCount - timestamp ): "") . " `r`n", % csv_file
-			WinSetTitle, Hourly Counter | Finished
+			FileAppend , % "Finished, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session finished, " .  FormatTimeStamp(A_TickCount - timestamp + time_delta) . " `r`n", % csv_file
+			WinSetTitle,  % gui_name . "| Finished"
 			is_running := false
+			is_paused := false
+			time_delta := 0
+			GuiControl , , timer,  % FormatTimeStamp(0)
 		return
 		case "update":
-			FileAppend , % "Description, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", " . desc . " , `r`n", % csv_file
+			FileAppend , % "Description, " . A_Hour . ":" . A_Min . ":" . A_Sec . ","" " . desc . " "" , `r`n", % csv_file
 			return
 		case "exit":
-			FileAppend , % "Exited, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App Exited " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . (is_running ? FormatTimeStamp(A_TickCount - timestamp ): "") . " `r`n`r`n", % csv_file
-		return	
-
+			; Only log the elapsed time when our app is actively running/paused as a failsafe against aburptly exiting the app
+			FileAppend , % "Exited, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App Exited " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", "
+			. ((is_running or is_paused) ? FormatTimeStamp(A_TickCount - timestamp + time_delta ): "") . " `r`n`r`n", % csv_file
+		return
 	}
-
 }
 
-FormatTimeStamp(delta)  ; Convert the specified number of milliseconds to hh:mm:ss format.
+/**
+Method name - get_filename
+params:-
+	raw - whether to return the actual index of radio control (i.e. raw index) or not
+returns :-
+	filename based on the selection of our worksheet split type in configuration (default month based)
+*/
+get_filename(raw:=false){
+	IniRead , csv_split, config.ini, file, split
+	switch (csv_split){
+		case "day":
+			return  raw ? 1 : "working_hours_" . A_DD . "_" . A_MMM . "_" . A_YYYY . ".csv"
+		case "month":
+			return raw ? 2 : "working_hours_" . A_MMM . "_" . A_YYYY . ".csv"
+		case "app":
+			return raw ? 3 : "working_hours_app_run_" . A_Now . A_MMM . "_" . A_YYYY . ".csv"
+		case "year":
+			return raw ? 4 : "working_hours_" . A_YYYY . ".csv"
+		case Default:
+			return raw ? 2: "working_hours_" . A_MMM . "_" . A_YYYY . ".csv"
+	}
+}
+
+/**
+Method name - set_filename - used internally for the configuration purpose only
+params:-
+	Index - Index of the radiobutton
+returns :-
+	null
+*/
+set_filename(index){
+	switch (index){
+		case 1: IniWrite , % "day" , config.ini, file, split
+		case 2: IniWrite , % "month" , config.ini, file, split
+		case 3: IniWrite , % "app" , config.ini, file, split
+		case 4: IniWrite , % "year" , config.ini, file, split
+	}
+}
+
+/**
+Method name - FormatTimeStamp - Convert the specified number of milliseconds to hh:mm:ss format.
+params:-
+	delta - Total time elapsed in ms
+returns :-
+	Time string -> Number of hours:mins:secs elapsed
+*/
+FormatTimeStamp(delta)
 {
 	delta := delta/1000
 	hours := Format("{:02}", floor(delta/3600))
