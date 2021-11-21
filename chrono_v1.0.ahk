@@ -1,5 +1,3 @@
-;@Ahk2Exe-SetMainIcon icon.ico
-;@Ahk2Exe-ExeName chronometro
 ; Script Name - Cron�metro - Working hours counter
 /**
 This script provides a personalised and privacy focused way to pitch in
@@ -33,7 +31,7 @@ global time_delta := 0
 ; Set gui positioning to bottom right corner
 x_gui:= A_ScreenWidth - 350
 y_gui := A_ScreenHeight - 150
-global gui_name := "Cron�metro"
+global gui_name := "Cronometro"
 
 ; Main Gui
 Gui, Color, White, Black
@@ -88,7 +86,6 @@ FileAppend , % "`r`nInitiated, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App S
 
 ; Customise the tray menu
 Menu, Tray, NoStandard
-Menu, Tray, Icon, Shell32.dll, 24
 Menu, Tray, Add, Show, show
 Menu, Tray, Add, Configure, configure
 Menu, Tray, Add, Open Worksheet Folder, open
