@@ -47,7 +47,7 @@ Gui, Add, Button, xp+100 yp gopen w30 h30 , % chr(128194)
 Gui, Add, Button, xp+35 yp gconfigure w30 h30 , % chr(128736)
 ; Show the main gui
 Gui, Show, w330 h50 x%x_gui% y%y_gui%, % gui_name
-Gui, +LastFound +AlwaysOnTop +ToolWindow
+Gui, +LastFound +AlwaysOnTop +ToolWindow +Owner
 ; Disable irrelevant controls (Since this is our first run)
 GuiControl , Disable, stop
 GuiControl , Disable, desc
@@ -66,22 +66,23 @@ SplitPath , csv_file, , csv_folder
 split_checked := get_filename(true)
 ; labels are based according to the config
 ; Do not mess this up unless you are absolutely sure about what you are doing
-radio_labels := ["Current Day", "Current Month", "App run", "Current Year"]
+radio_labels := ["Current day", "Current month", "App run", "Current year"]
 
 ; Create a configuration window
 Gui, config: Add, CheckBox, von_start gautoStart  %is_auto_start% x32 y9 w210 h20 , Start with windows
-Gui, config: Add, Text, x32 y39 w210 h20 , Name/Split worksheets files based on
+Gui, config: Add, Text, x32 y39 w210 h20 , Split worksheet files based on
 Gui, config: Add, Radio, vworsheets_split xp yp w0 h0, ; Fake label to store radio info
 ; This will make sure that your last configuration will be selected on the radio control
 for key, label in radio_labels {
+	radio_checked :=
 	if (key = split_checked)
-		checked := "checked"
-	Gui, config: Add, Radio, %checked% xp yp+20 h20 , % label
+		radio_checked := "Checked"
+	Gui, config: Add, Radio, %radio_checked% xp yp+20 h20 , % label
 }
 Gui, config: Add, Edit, vcsv_folder_browser ReadOnly x22 y169 w200 h20 , %csv_folder%
 Gui, config: Add, Button, x122 y199 w100 h20 , Browse
 Gui, config: Add, Button, x62 y239 w100 h30 , Save
-Gui, config: Add, Text, x22 y149 w200 h20 , Custom Folder to Save worksheets
+Gui, config: Add, Text, x22 y149 w200 h20 , Save worksheets to
 
 ; Make sure to log the App run
 FileAppend , % "`r`nInitiated, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App Started " . A_DD . "/" . A_MMM . "/" . A_YYYY . ",`r`n", % csv_file
