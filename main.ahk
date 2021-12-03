@@ -96,6 +96,8 @@ Menu, Tray, Add, Exit, exit
 
 ; Handles System Shutdown and Logoff
 OnMessage(0x11, "WM_QUERYENDSESSION")
+; Handles Tray clicks
+OnMessage(0x404, "AHK_NOTIFYICON")
 return
 
 ; Show the main gui
@@ -329,6 +331,13 @@ FormatTimeStamp(delta)
 The following snippets has been taken from the Autohotkey Documentation
 */
 
+;Clicking the icon will lead to Main window
+AHK_NOTIFYICON(wParam, lParam, uMsg, hWnd)
+{
+	global gui_name
+	if (lParam = 0x0201)
+		WinShow , % gui_name
+}
 
 WM_QUERYENDSESSION(wParam, lParam)
 {
