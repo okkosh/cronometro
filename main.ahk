@@ -1,6 +1,6 @@
 ;@Ahk2Exe-SetMainIcon icon.ico
-;@Ahk2Exe-ExeName chronometro
-; Script Name - Cron�metro - Working hours counter
+;@Ahk2Exe-ExeName cronometro
+; Script Name - Cronometro - Working hours counter
 /**
 This script provides a personalised and privacy focused way to pitch in
 your working hours by creating a small widget on your screen's top left
@@ -94,6 +94,8 @@ Menu, Tray, Add, Configure, configure
 Menu, Tray, Add, Open Worksheet Folder, open
 Menu, Tray, Add, Exit, exit
 
+; Handles System Shutdown and Logoff
+OnMessage(0x11, "WM_QUERYENDSESSION")
 return
 
 ; Show the main gui
@@ -321,4 +323,61 @@ FormatTimeStamp(delta)
 	mins := Format("{:02}", floor((delta/60) - (hours*60)))
 	sec :=  Format("{:02}", floor(delta - hours*3600 - mins*60))
 	return % hours . ":" . mins . ":" . sec
+}
+
+/**
+The following snippets has been taken from the Autohotkey Documentation
+*/
+
+
+WM_QUERYENDSESSION(wParam, lParam)
+{
+	global is_running, is_paused
+
+    ENDSESSION_LOGOFF := 0x80000000
+    if (lParam & ENDSESSION_LOGOFF)  ; User is logging off.
+        EventType := "Logoff"
+    else  ; System is either shutting down or restarting.
+        EventType := "Shutdown"
+    try
+    {
+		if (is_running or is_paused) {
+			; Set a prompt for the OS shutdown UI to display.  We do not display
+			; our own confirmation prompt because we have only 5 seconds before
+			; the OS displays the shutdown UI anyway.  Also, a program without
+			; a visible window cannot block shutdown without providing a reason.
+			BlockShutdown("Chronometro attempting to prevent " EventType ".")
+			return false
+		} else {
+			ex_action("exit")
+			return true
+		}
+    }
+    catch
+    {
+        ; ShutdownBlockReasonCreate is not available, so this is probably
+        ; Windows XP, 2003 or 2000, where we can actually prevent shutdown.
+        MsgBox, 4,, %EventType% in progress.  Allow it?
+        IfMsgBox Yes
+		{
+			ex_action("exit")
+			return true  ; Tell the OS to allow the shutdown/logoff to continue.
+        } else {
+            return false  ; Tell the OS to abort the shutdown/logoff.
+		}
+    }
+}
+
+BlockShutdown(Reason)
+{
+    ; If your script has a visible GUI, use it instead of A_ScriptHwnd.
+    DllCall("ShutdownBlockReasonCreate", "ptr", A_ScriptHwnd, "wstr", Reason)
+    OnExit("StopBlockingShutdown")
+}
+
+StopBlockingShutdown()
+{
+	ex_action("exit")
+    OnExit(A_ThisFunc, 0)
+    DllCall("ShutdownBlockReasonDestroy", "ptr", A_ScriptHwnd)
 }
