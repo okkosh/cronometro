@@ -31,17 +31,17 @@ global is_paused := false
 global time_delta := 0
 
 ; Set gui positioning to bottom right corner
-x_gui:= A_ScreenWidth - 350
-y_gui := A_ScreenHeight - 150
+x_gui:= (A_ScreenWidth - 350*A_ScreenDPI/96)
+y_gui := (A_ScreenHeight - 150*A_ScreenDPI/96)
 global gui_name := "Cronometro"
 
 ; Main Gui
 Gui, Color, White, Black
 Gui, Font, s15, Arial
-Gui, Add, Button, vstart gstart x10 y10 w30 h30 , % Chr(9201)
+Gui, Add, Button, vstart gstart x10 y10 w30 h30 , % Chr(9210)
 Gui, Add, Button, vstop gpause xp+35 yp w30 h30 , % Chr(9208)
-Gui, Add, Button, vdesc gdesc xp+35 yp w30 h30 , % Chr(128172)
-Gui, Add, Button, vfinish gfinish xp+35 yp w30 h30 ,  % Chr(127937)
+Gui, Add, Button, vfinish gfinish xp+35 yp w30 h30 , % Chr(9209)
+Gui, Add, Button, vdesc gdesc xp+35 yp w30 h30 , % Chr(128221)
 Gui, Add, Text, vtimer xp+35 yp w90 h30 +Center, 00:00:00
 Gui, Add, Button, xp+100 yp gopen w30 h30 , % chr(128194)
 Gui, Add, Button, xp+35 yp gconfigure w30 h30 , % chr(128736)
