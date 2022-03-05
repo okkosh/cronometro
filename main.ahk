@@ -85,7 +85,8 @@ Gui, config: Add, Button, x62 y239 w100 h30 , Save
 Gui, config: Add, Text, x22 y149 w200 h20 , Save worksheets to
 
 ; Make sure to log the App run
-FileAppend , % "`r`nInitiated, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App Started " . A_DD . "/" . A_MMM . "/" . A_YYYY . ",`r`n", % csv_file
+if not FileExist(csv_file)
+	FileAppend , % "ACTION, DATE, TIME, TOTAL`r`n", % csv_file
 
 ; Customise the tray menu
 Menu, Tray, NoStandard
@@ -234,27 +235,27 @@ ex_action(command:="start", desc := ""){
 	switch (command){
 		case "start":
 			timestamp := A_TickCount
-			FileAppend , % "Started, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session started, `r`n", % csv_file
+			FileAppend , % "`r`nSession Started, " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", `r`n", % csv_file
 			WinSetTitle, % gui_name . "| Running..."
 			is_running := true
 		return
 		case "stop":
 		case "pause":
-			FileAppend,  % "Stopped|Paused, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session stopped/paused, `r`n", % csv_file
+			FileAppend,  % "Paused (Total Session - " .  FormatTimeStamp(A_TickCount - timestamp + time_delta) . ") , " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", `r`n", % csv_file
 			WinSetTitle, % gui_name . "| Paused"
 			is_running := false
 			is_paused := true
-			time_delta := time_delta + A_TickCount - timestamp
+			time_delta := A_TickCount - timestamp + time_delta
 		return
 		case "resume":
 			timestamp := A_TickCount
-			FileAppend , % "Resumed, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session resumed, `r`n", % csv_file
+			FileAppend , % "Session Resumed, " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", `r`n", % csv_file
 			WinSetTitle, % gui_name . "| Running (Resumed)..."
 			is_paused := false
 			is_running := true
 		return
 		case "finish":
-			FileAppend , % "Finished, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", Session finished, " .  FormatTimeStamp(A_TickCount - timestamp + time_delta) . " `r`n", % csv_file
+			FileAppend , % "Finished, " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", " . (is_running ? FormatTimeStamp(A_TickCount - timestamp + time_delta): FormatTimeStamp(time_delta)) . "`r`n", % csv_file
 			WinSetTitle,  % gui_name . "| Finished"
 			is_running := false
 			is_paused := false
@@ -262,12 +263,12 @@ ex_action(command:="start", desc := ""){
 			GuiControl , , timer,  % FormatTimeStamp(0)
 		return
 		case "update":
-			FileAppend , % "Description, " . A_Hour . ":" . A_Min . ":" . A_Sec . ","" " . desc . " "" , `r`n", % csv_file
+			FileAppend , % " " """" . desc . " "" [Info Added], "  . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ",`r`n", % csv_file
 			return
 		case "exit":
 			; Only log the elapsed time when our app is actively running/paused as a failsafe against aburptly exiting the app
-			FileAppend , % "Exited, " . A_Hour . ":" . A_Min . ":" . A_Sec . ", App Exited " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", "
-			. (is_running ? FormatTimeStamp(A_TickCount - timestamp + time_delta):  ( is_paused ? FormatTimeStamp(time_delta) : "" )) . " `r`n`r`n", % csv_file
+			FileAppend , % "Exited, " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", "
+			. (is_running ? FormatTimeStamp(A_TickCount - timestamp + time_delta):  ( is_paused ?  FormatTimeStamp(time_delta) : "" )) . " `r`n`r`n", % csv_file
 		return
 	}
 }
@@ -283,15 +284,15 @@ get_filename(raw:=false){
 	IniRead , csv_split, config.ini, file, split
 	switch (csv_split){
 		case "day":
-			return  raw ? 1 : "working_hours_" . A_DD . "_" . A_MMM . "_" . A_YYYY . ".csv"
+			return  raw ? 1 : "working_hours_raw_" . A_DD . "_" . A_MMM . "_" . A_YYYY . ".csv"
 		case "month":
-			return raw ? 2 : "working_hours_" . A_MMM . "_" . A_YYYY . ".csv"
+			return raw ? 2 : "working_hours_raw_" . A_MMM . "_" . A_YYYY . ".csv"
 		case "app":
 			return raw ? 3 : "working_hours_app_run_" . A_Now . A_MMM . "_" . A_YYYY . ".csv"
 		case "year":
-			return raw ? 4 : "working_hours_" . A_YYYY . ".csv"
+			return raw ? 4 : "working_hours_raw_" . A_YYYY . ".csv"
 		case Default:
-			return raw ? 2: "working_hours_" . A_MMM . "_" . A_YYYY . ".csv"
+			return raw ? 2: "working_hours_raw_" . A_MMM . "_" . A_YYYY . ".csv"
 	}
 }
 
