@@ -38,4 +38,4 @@ Cronómetro - Simple, Lightweight, Offline &amp; Privacy focused time tracking a
 This software/script is currently in Beta. Use at your own risk.
 
 ## Credits:
-Icon by - [lucy G](https://bylucyg.com/)
+Icon by - [Icon8](https://icon8.com/)
