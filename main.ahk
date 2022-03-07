@@ -51,6 +51,8 @@ edit_file_icon_dis := "res\icons8-edit-file-disabled-64.png"
 opened_folder_icon_dis := "res\icons8-opened-folder-disabled-64.png"
 settings_icon_dis := "res\icons8-settings-disabled-64.png"
 
+; Minimise to tray icon
+mini_tray := "res\icons8-close-32.png"
 
 
 ; Main Gui
@@ -70,8 +72,9 @@ open_folder_TT := "Open worksheet directory"
 Gui, Add, Pic, xp+35 yp cWhite  vconfigure_crono gconfigure w25 h25 , % settings_icon
 configure_crono_TT := "Cronometro settings"
 
+Gui, Add, Pic, xp+27 y5 gGuiClose w12 h12 , % mini_tray
 ; Show the main gui
-Gui, Show, w320 h15 x%x_gui% y%y_gui%, % gui_name
+Gui, Show, w325 h15 x%x_gui% y%y_gui%, % gui_name
 Gui, +LastFound +AlwaysOnTop -Caption  +Owner
 ; Disable irrelevant controls (Since this is our first run)
 GuiControl , Disable, stop
