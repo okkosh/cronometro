@@ -35,25 +35,44 @@ x_gui:= (A_ScreenWidth - 350*A_ScreenDPI/96)
 y_gui := (A_ScreenHeight - 150*A_ScreenDPI/96)
 global gui_name := "Cronometro"
 
+; Enabled icon set
+play_icon := "res\icons8-play-64.png"
+pause_icon := "res\icons8-pause-64.png"
+stop_icon := "res\icons8-stop-64.png"
+edit_file_icon := "res\icons8-edit-file-64.png"
+opened_folder_icon := "res\icons8-opened-folder-64.png"
+settings_icon := "res\icons8-settings-64.png"
+
+; Disabled icon set
+play_icon_dis := "res\icons8-play-disabled-64.png"
+pause_icon_dis := "res\icons8-pause-disabled-64.png"
+stop_icon_dis := "res\icons8-stop-disabled-64.png"
+edit_file_icon_dis := "res\icons8-edit-file-disabled-64.png"
+opened_folder_icon_dis := "res\icons8-opened-folder-disabled-64.png"
+settings_icon_dis := "res\icons8-settings-disabled-64.png"
+
+
+
 ; Main Gui
-Gui, Color, White, Black
+Gui, Color, 2f3337, 000000
+Gui, Add, Pic, vstart cWhite gstart x10 y10 w25 h25 , % play_icon
 start_TT := "Start/resume a task/session"
+Gui, Add, Pic, vstop cWhite  gpause xp+35 yp w25 h25 , % pause_icon_dis
 stop_TT := "Pause an already running session"
+Gui, Add, Pic, vfinish cWhite  gfinish xp+35 yp w25 h25 , % stop_icon_dis
 finish_TT := "Finish a task/session"
 Gui, Font, s15, Arial
-Gui, Add, Button, vstart gstart x10 y10 w30 h30 , % Chr(9210)
-Gui, Add, Button, vstop gpause xp+35 yp w30 h30 , % Chr(9208)
-Gui, Add, Button, vfinish gfinish xp+35 yp w30 h30 , % Chr(9209)
-Gui, Add, Button, vdesc gdesc xp+35 yp w30 h30 , % Chr(128221)
-Gui, Add, Text, vtimer xp+35 yp w90 h30 +Center, 00:00:00
-Gui, Add, Button, xp+100 yp gopen w30 h30 , % chr(128194)
-Gui, Add, Button, xp+35 yp gconfigure w30 h30 , % chr(128736)
+Gui, Add, Text, vtimer cWhite  xp+35 yp w90 h30 +Center, 00:00:00
+Gui, Add, Pic, vdesc cWhite gdesc xp+100 yp w25 h25 , % edit_file_icon_dis
 desc_TT := "Add task's description"
+Gui, Add, Pic, xp+35 yp cWhite  vopen_folder gopen w25 h25 , % opened_folder_icon
 open_folder_TT := "Open worksheet directory"
+Gui, Add, Pic, xp+35 yp cWhite  vconfigure_crono gconfigure w25 h25 , % settings_icon
 configure_crono_TT := "Cronometro settings"
+
 ; Show the main gui
-Gui, Show, w330 h50 x%x_gui% y%y_gui%, % gui_name
-Gui, +LastFound +AlwaysOnTop +ToolWindow +Owner
+Gui, Show, w320 h15 x%x_gui% y%y_gui%, % gui_name
+Gui, +LastFound +AlwaysOnTop -Caption  +Owner
 ; Disable irrelevant controls (Since this is our first run)
 GuiControl , Disable, stop
 GuiControl , Disable, desc
@@ -137,6 +156,11 @@ start:
 	GuiControl , Enable, stop
 	GuiControl , Enable, desc
 	GuiControl , Enable, finish
+	; Set Icons accordingly
+	GuiControl,, start, % play_icon_dis
+	GuiControl,, stop, % pause_icon
+	GuiControl,, finish, % stop_icon
+	GuiControl,, desc, % edit_file_icon
 
 	if is_paused{
 		ex_action("resume")
@@ -153,6 +177,11 @@ pause:
 	GuiControl , Enable, start
 	GuiControl , Disable, stop
 	GuiControl , Disable, desc
+	; Set Icons accordingly
+	GuiControl,, start, % play_icon
+	GuiControl,, stop, % pause_icon_dis
+	GuiControl,, desc, % edit_file_icon_dis
+
 	ex_action("pause")
 	SetTimer , stopwatch, Off
 	return
@@ -167,6 +196,10 @@ finish:
 	GuiControl, Enable, start
 	GuiControl, Disable, stop
 	GuiControl , Disable, finish
+	; Set Icons accordingly
+	GuiControl,, start, % play_icon
+	GuiControl,, stop, % pause_icon_dis
+	GuiControl,, finish, % stop_icon_dis
 	ex_action("finish")
 	SetTimer , stopwatch, Off
 return
