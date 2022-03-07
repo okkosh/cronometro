@@ -37,6 +37,9 @@ global gui_name := "Cronometro"
 
 ; Main Gui
 Gui, Color, White, Black
+start_TT := "Start/resume a task/session"
+stop_TT := "Pause an already running session"
+finish_TT := "Finish a task/session"
 Gui, Font, s15, Arial
 Gui, Add, Button, vstart gstart x10 y10 w30 h30 , % Chr(9210)
 Gui, Add, Button, vstop gpause xp+35 yp w30 h30 , % Chr(9208)
@@ -45,6 +48,9 @@ Gui, Add, Button, vdesc gdesc xp+35 yp w30 h30 , % Chr(128221)
 Gui, Add, Text, vtimer xp+35 yp w90 h30 +Center, 00:00:00
 Gui, Add, Button, xp+100 yp gopen w30 h30 , % chr(128194)
 Gui, Add, Button, xp+35 yp gconfigure w30 h30 , % chr(128736)
+desc_TT := "Add task's description"
+open_folder_TT := "Open worksheet directory"
+configure_crono_TT := "Cronometro settings"
 ; Show the main gui
 Gui, Show, w330 h50 x%x_gui% y%y_gui%, % gui_name
 Gui, +LastFound +AlwaysOnTop +ToolWindow +Owner
@@ -99,6 +105,10 @@ Menu, Tray, Add, Exit, exit
 OnMessage(0x11, "WM_QUERYENDSESSION")
 ; Handles Tray clicks
 OnMessage(0x404, "AHK_NOTIFYICON")
+; Handles Mouse hovers for tooltips
+OnMessage(0x200, "WM_MOUSEMOVE")
+; Make window a bit transparent
+WinSet, Transparent, 240, % gui_name
 return
 
 ; Show the main gui
@@ -390,4 +400,35 @@ StopBlockingShutdown()
 	ex_action("exit")
     OnExit(A_ThisFunc, 0)
     DllCall("ShutdownBlockReasonDestroy", "ptr", A_ScriptHwnd)
+}
+
+; This snippet is taken from AHK forums for tooltip on hover
+WM_MOUSEMOVE(wparam, lParam, msg, hwnd)
+{
+    static CurrControl, PrevControl, _TT  ; _TT is kept blank for use by the ToolTip command below.
+    CurrControl := A_GuiControl
+    If (CurrControl <> PrevControl and not InStr(CurrControl, " "))
+    {
+        ToolTip  ; Turn off any previous tooltip.
+        SetTimer, DisplayToolTip, 1000
+        PrevControl := CurrControl
+    } else {
+		if wparam = 1 ; LButton
+			PostMessage, 0xA1, 2,,, A ; WM_NCLBUTTONDOWN
+	}
+
+    return
+
+
+	DisplayToolTip:
+	try
+		ToolTip % %CurrControl%_TT
+	catch
+		ToolTip
+	SetTimer, RemoveToolTip, -2000
+	return
+
+	RemoveToolTip:
+	ToolTip
+	return
 }
