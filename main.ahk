@@ -277,7 +277,8 @@ ex_action(command:="start", desc := ""){
 			return
 		case "exit":
 			; Only log the elapsed time when our app is actively running/paused as a failsafe against aburptly exiting the app
-			FileAppend , % "Exited, " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", "
+			if (is_running or is_paused)
+				FileAppend , % "Exited/Finished, " . ( A_DD . "/" . A_MMM . "/" . A_YYYY ) . ", " . A_Hour . ":" . A_Min . ":" . A_Sec . ", "
 			. (is_running ? FormatTimeStamp(A_TickCount - timestamp + time_delta):  ( is_paused ?  FormatTimeStamp(time_delta) : "" )) . " `r`n`r`n", % csv_file
 		return
 	}
