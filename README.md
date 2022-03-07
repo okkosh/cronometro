@@ -1,7 +1,7 @@
 # Cronometro (Beta)
 Cronómetro - Simple, Lightweight, Offline &amp; Privacy focused time tracking app for freelancers.
 
-![Screenshot](https://i.imgur.com/8YQxkOe.png)
+![Screenshot](https://i.imgur.com/IErca5Y.png)
 
 ## Features:
 - Separate your worksheet files on daily, monthly, or yearly basis
@@ -14,18 +14,18 @@ Cronómetro - Simple, Lightweight, Offline &amp; Privacy focused time tracking a
 ## Installation:
 
 **How to Install**
-- Download [chronometro](https://github.com/okkosh/cronometro/releases) zip file from releases.
+- Download the latest [chronometro.zip](https://github.com/okkosh/cronometro/releases) zip file from releases.
 - Place it anywhere on your system.
-- Unzip and *Double Click* **cronometro.exe** and It will show up on your screen.
+- Unzip and *Double Click* **cronometro.exe** and it will show up on your screen.
 - Enjoy!
 
 **How to Remove**
 - Exit `chronometro.exe` from the tray (If it is already running).
-- Delete `chronometro.exe` file and optionally delete `config.ini` file alongside it.
+- Delete the extracted files/folder and optionally delete `config.ini` file alongside it.
 
 
 ## Screenshots:
-![Screenshot](https://i.imgur.com/Q4Uq6dN.png)
+![Screenshot](https://i.imgur.com/5Kwq89R.png)
 
 
 ## Building
@@ -38,4 +38,4 @@ Cronómetro - Simple, Lightweight, Offline &amp; Privacy focused time tracking a
 This software/script is currently in Beta. Use at your own risk.
 
 ## Credits:
-Icon by - [Icon8](https://icon8.com/)
+Icons by - [Icon8](https://icon8.com/)
