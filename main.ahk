@@ -3,13 +3,19 @@
 ; Script Name - Cronometro - Working hours counter
 /**
 This script provides a personalised and privacy focused way to pitch in
-your working hours by creating a small widget on your screen's top left
-corner with simple three button interface.
+your working hours by creating a small widget on your screen's bottom right
+corner with simple button interface.
 
 TODO: Configurable widget location
 */
 
 IniRead , csv_file, config.ini, file, location
+IniRead , username_, config.ini, email, user
+IniRead , server_, config.ini, email, server
+IniRead , port_, config.ini, email, port
+IniRead , from_, config.ini, email, from
+IniRead , to_, config.ini, email, to
+Cred_suffix := "AHK_Creds"
 
 ; Use a default csv_file in case of non-existent location
 if not csv_file {
@@ -31,7 +37,7 @@ global is_paused := false
 global time_delta := 0
 
 ; Set gui positioning to bottom right corner
-x_gui:= (A_ScreenWidth - 350*A_ScreenDPI/96)
+x_gui:= (A_ScreenWidth - 390*A_ScreenDPI/96)
 y_gui := (A_ScreenHeight - 150*A_ScreenDPI/96)
 global gui_name := "Cronometro"
 
@@ -42,6 +48,8 @@ stop_icon := "res\icons8-stop-64.png"
 edit_file_icon := "res\icons8-edit-file-64.png"
 opened_folder_icon := "res\icons8-opened-folder-64.png"
 settings_icon := "res\icons8-settings-64.png"
+share_icon := "res\icons8-share-rounded-64.png"
+
 
 ; Disabled icon set
 play_icon_dis := "res\icons8-play-disabled-64.png"
@@ -71,10 +79,12 @@ Gui, Add, Pic, xp+35 yp cWhite  vopen_folder gopen w25 h25 , % opened_folder_ico
 open_folder_TT := "Open worksheet directory"
 Gui, Add, Pic, xp+35 yp cWhite  vconfigure_crono gconfigure w25 h25 , % settings_icon
 configure_crono_TT := "Cronometro settings"
+Gui, Add, Pic, xp+35 yp cWhite  vshare_hours gshare w25 h25 , % share_icon
+configure_crono_TT := "Share working hours"
 
 Gui, Add, Pic, xp+27 y5 gGuiClose w12 h12 , % mini_tray
 ; Show the main gui
-Gui, Show, w325 h15 x%x_gui% y%y_gui%, % gui_name
+Gui, Show, w355 h15 x%x_gui% y%y_gui%, % gui_name
 Gui, +LastFound +AlwaysOnTop -Caption  +Owner
 ; Disable irrelevant controls (Since this is our first run)
 GuiControl , Disable, stop
@@ -97,8 +107,8 @@ split_checked := get_filename(true)
 radio_labels := ["Current day", "Current month", "App run", "Current year"]
 
 ; Create a configuration window
-Gui, config: Add, CheckBox, von_start gautoStart  %is_auto_start% x32 y9 w210 h20 , Start with windows
-Gui, config: Add, Text, x32 y39 w210 h20 , Split worksheet files based on
+Gui, config: Add, CheckBox, von_start gautoStart  %is_auto_start% x32 y20 w210 h20 , Start with windows
+Gui, config: Add, Text, x32 yp+30 w210 h20 , Split worksheet files based on
 Gui, config: Add, Radio, vworsheets_split xp yp w0 h0, ; Fake label to store radio info
 ; This will make sure that your last configuration will be selected on the radio control
 for key, label in radio_labels {
@@ -107,10 +117,25 @@ for key, label in radio_labels {
 		radio_checked := "Checked"
 	Gui, config: Add, Radio, %radio_checked% xp yp+20 h20 , % label
 }
-Gui, config: Add, Edit, vcsv_folder_browser ReadOnly x22 y169 w200 h20 , %csv_folder%
-Gui, config: Add, Button, x122 y199 w100 h20 , Browse
-Gui, config: Add, Button, x62 y239 w100 h30 , Save
-Gui, config: Add, Text, x22 y149 w200 h20 , Save worksheets to
+Gui, config: Add, Text, x22 yp+20 w200 h20 , Save worksheets to
+Gui, config: Add, Edit, vcsv_folder_browser ReadOnly x22 yp+20 w200 h20 , %csv_folder%
+Gui, config: Add, Button, x122 yp+20 w100 h20 , Browse
+
+Gui, config: Add, Text, x240 y10 h20 , Email Settings:
+Gui, config: Add, Text, x240 yp+20 h20 , Server (SMTP/IMAP)
+Gui, config: Add, Edit, vserver xp yp+20 w200 h20, %server_%
+Gui, config: Add, Text, xp yp+30 w200 h20 , Port (587/25)
+Gui, config: Add, Edit, vport xp yp+20 w200 h20, %port_%
+Gui, config: Add, Text, xp yp+30 w200 h20 , Username
+Gui, config: Add, Edit, vusername xp yp+20 w200 h20, %username_%
+Gui, config: Add, Text, xp yp+30 w200 h20 , Password
+Gui, config: Add, Edit, vpassword password xp yp+20 w200 h20, %password_%
+Gui, config: Add, Text, xp yp+30 w200 h20 , From Email
+Gui, config: Add, Edit, vfrom xp yp+20 w200 h20, %from_%
+Gui, config: Add, Text, xp yp+30 w200 h20 , To Email
+Gui, config: Add, Edit, vto xp yp+20 w200 h20, %to_%
+
+Gui, config: Add, Button, x110 yp+30 w200 h30 , Save
 
 ; Make sure to log the App run
 if not FileExist(csv_file)
@@ -150,6 +175,7 @@ GuiClose:
 exit:
 	ex_action("exit")
 ExitApp
+
 
 ; Start the time tracking
 start:
@@ -207,6 +233,60 @@ finish:
 	SetTimer , stopwatch, Off
 return
 
+share:
+	if server_ =
+	{
+		MsgBox, 64, Email not configured, Please configure your email settings first.
+		return
+	}
+	TrayTip, Cronometro, Sharing your yesterday's report, 2, 17
+	creds := CredRead(Cred_suffix)
+	password := creds.password
+
+	L_day := A_DD - 1
+	Year := A_YYYY
+	if (L_day <= 0){
+		if (A_MM = 01){
+			Month := "Dec"
+			Year := A_YYYY-1
+		}
+		L_day := last_day(Month)
+	}
+	total_time := "00:00:00"
+	mail_body := ""
+
+	date_ := L_day . "/" . A_MMM . "/" . A_YYYY
+
+	Loop, Read, % csv_file
+	{
+		If InStr(A_LoopReadLine, date_ ) {
+			mail_body := mail_body . "<tr>"
+			Loop, Parse, A_LoopReadLine, CSV
+			{
+				if (A_index == 4) { ; Last field
+
+					if (A_LoopField <> " ") {
+						total_time := add_time(total_time, A_LoopField)
+					}
+					mail_body :=  mail_body . "<td><b>" .  A_LoopField . "</b></td>"
+				} else {
+					mail_body :=  mail_body . "<td>" .  A_LoopField . "</td>"
+				}
+
+			}
+			mail_body := mail_body . "</tr>"
+		}
+	}
+
+	raw_html =
+		(<!DOCTYPE html>
+		<html><style>table, th, td `{border:1px solid black;`}</style><body><h2>Working hours on %date_%</h2><table style='width:100`%; border: 1px solid black'>
+		<tr><th>Action</th><th>Date</th><th>Time</th><th>Total</th></tr>%mail_body%</table><br/><h4>Total Time Worked: %total_time%</h4><p>Auto generated by Cronometro</p></body></html>
+		)
+	Runwait, %A_WorkingDir%\bin\SwithMail.exe /s /from %from_% /pass %password% /Server %server_% /Port %port_% /to %to_% /TLS /HTML "true" /sub "Working hours %date_%" /b "%raw_html%", , hide
+	MsgBox, 64, Shared, Your previous day report has been shared with %to_%
+return
+
 ; Description of a task is updated.
 taskButtonDone:
 	Gui, task: submit, Nohide
@@ -216,7 +296,7 @@ return
 
 ; Configure Chronometro
 configure:
-	Gui, config: Show, w240 h281 , Configure
+	Gui, config: Show, , Configure
 return
 
 ; Open the folder containing worksheets
@@ -249,6 +329,12 @@ configButtonSave:
 	; worksheet settings
 	IniWrite , %csv_folder% , config.ini, file, location
 	csv_file := csv_folder . "/" . get_filename()
+	IniWrite , %username% , config.ini, email, user
+	IniWrite , %server% , config.ini, email, server
+	IniWrite , %port% , config.ini, email, port
+	IniWrite , %from% , config.ini, email, from
+	IniWrite , %to% , config.ini, email, to
+	CredWrite(Cred_suffix, username, password)
 	; Hide the main configuration window
 	WinHide , Configure
 	return
@@ -261,6 +347,7 @@ configButtonBrowse:
 		GuiControl , config: , csv_folder_browser, %csv_folder%
 	}
 	return
+
 
 /**
 Method name - ex_action - execute action
@@ -375,6 +462,34 @@ FormatTimeStamp(delta)
 	return % hours . ":" . mins . ":" . sec
 }
 
+; Method to get last day of any month
+last_day(month){
+	switch (month){
+		case 1, 3, 5, 7,8,10,12:
+			return 31
+		case 4,6,9,11:
+			return 30
+		case 2:
+			if ((Mod(A_YYYY,4) == 0) && (Mod(A_YYYY,4) || Mod(A_YYYY,100)!= 0)){
+				return 28
+			}
+			return 27
+
+	}
+}
+
+; Add two times/hours
+add_time(work_1, work_2){
+	time_1 := StrSplit(work_1, ":")
+	time_2 := StrSplit(work_2, ":")
+
+	final_time_s :=  time_1[3] + time_2[3]
+	final_time_m := (time_1[2] + time_2[2]) + floor(final_time_s/60)
+	final_time_h := (time_1[1] + time_2[1]) + floor(final_time_m/60)
+
+	return  Format("{:02}",final_time_h) . ":" .  Format("{:02}", Mod(final_time_m, 60)) . ":" .  Format("{:02}",Mod(final_time_s, 60))
+}
+
 /**
 The following snippets has been taken from the Autohotkey Documentation
 */
@@ -468,4 +583,51 @@ WM_MOUSEMOVE(wparam, lParam, msg, hwnd)
 	RemoveToolTip:
 	ToolTip
 	return
+}
+
+/**
+ Snippet taken from ahk forums
+
+*/
+CredWrite(name, username, password)
+{
+	VarSetCapacity(cred, 24 + A_PtrSize * 7, 0)
+	cbPassword := StrLen(password)*2
+	NumPut(1         , cred,  4+A_PtrSize*0, "UInt") ; Type = CRED_TYPE_GENERIC
+	NumPut(&name     , cred,  8+A_PtrSize*0, "Ptr")  ; TargetName = name
+	NumPut(cbPassword, cred, 16+A_PtrSize*2, "UInt") ; CredentialBlobSize
+	NumPut(&password , cred, 16+A_PtrSize*3, "UInt") ; CredentialBlob
+	NumPut(3         , cred, 16+A_PtrSize*4, "UInt") ; Persist = CRED_PERSIST_ENTERPRISE (roam across domain)
+	NumPut(&username , cred, 24+A_PtrSize*6, "Ptr")  ; UserName
+	return DllCall("Advapi32.dll\CredWriteW"
+	, "Ptr", &cred ; [in] PCREDENTIALW Credential
+	, "UInt", 0    ; [in] DWORD        Flags
+	, "UInt") ; BOOL
+}
+
+CredDelete(name)
+{
+	return DllCall("Advapi32.dll\CredDeleteW"
+	, "WStr", name ; [in] LPCWSTR TargetName
+	, "UInt", 1    ; [in] DWORD   Type,
+	, "UInt", 0    ; [in] DWORD   Flags
+	, "UInt") ; BOOL
+}
+
+CredRead(name)
+{
+	DllCall("Advapi32.dll\CredReadW"
+	, "Str", name   ; [in]  LPCWSTR      TargetName
+	, "UInt", 1     ; [in]  DWORD        Type = CRED_TYPE_GENERIC (https://learn.microsoft.com/en-us/windows/win32/api/wincred/ns-wincred-credentiala)
+	, "UInt", 0     ; [in]  DWORD        Flags
+	, "Ptr*", pCred ; [out] PCREDENTIALW *Credential
+	, "UInt") ; BOOL
+	if !pCred
+		return
+	name := StrGet(NumGet(pCred + 8 + A_PtrSize * 0, "UPtr"), 256, "UTF-16")
+	username := StrGet(NumGet(pCred + 24 + A_PtrSize * 6, "UPtr"), 256, "UTF-16")
+	len := NumGet(pCred + 16 + A_PtrSize * 2, "UInt")
+	password := StrGet(NumGet(pCred + 16 + A_PtrSize * 3, "UPtr"), len/2, "UTF-16")
+	DllCall("Advapi32.dll\CredFree", "Ptr", pCred)
+	return {"name": name, "username": username, "password": password}
 }
