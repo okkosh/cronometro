@@ -15,6 +15,7 @@ IniRead , server_, config.ini, email, server
 IniRead , port_, config.ini, email, port
 IniRead , from_, config.ini, email, from
 IniRead , to_, config.ini, email, to
+IniRead , projects, config.ini, project, names
 Cred_suffix := "AHK_Creds"
 
 ; Use a default csv_file in case of non-existent location
@@ -33,6 +34,7 @@ global timestamp ; Timestamp to compare the time with
  ; Checks the current state running/paused
 global is_running := false
 global is_paused := false
+global prog_sleep := false ; Check whether sleep was done programmaticaly
 ; Time difference/delta to keep track of between each pause/start
 global time_delta := 0
 
@@ -150,6 +152,8 @@ Menu, Tray, Add, Exit, exit
 
 ; Handles System Shutdown and Logoff
 OnMessage(0x11, "WM_QUERYENDSESSION")
+; Handles System suspend
+OnMessage(0x218, "WM_SUSPEND")
 ; Handles Tray clicks
 OnMessage(0x404, "AHK_NOTIFYICON")
 ; Handles Mouse hovers for tooltips
@@ -502,6 +506,24 @@ AHK_NOTIFYICON(wParam, lParam, uMsg, hWnd)
 		WinShow , % gui_name
 }
 
+WM_SUSPEND(wParam, lParam, msg, hwnd)
+{
+	global is_running, stopwatch, is_paused, prog_sleep
+	If ((wParam = 4) or (wParam = 5)) {
+		if (is_running) {
+			ex_action("pause")
+			prog_sleep := true
+			SetTimer , stopwatch, Off
+		}
+	} else If ((wParam = 7) or (wParam = 8)) {
+		if (is_paused and prog_sleep) {
+			ex_action("resume")
+			prog_sleep := false
+			SetTimer , stopwatch, 1
+		}
+	}
+}
+
 WM_QUERYENDSESSION(wParam, lParam)
 {
 	global is_running, is_paused
@@ -568,7 +590,6 @@ WM_MOUSEMOVE(wparam, lParam, msg, hwnd)
 		if wparam = 1 ; LButton
 			PostMessage, 0xA1, 2,,, A ; WM_NCLBUTTONDOWN
 	}
-
     return
 
 
